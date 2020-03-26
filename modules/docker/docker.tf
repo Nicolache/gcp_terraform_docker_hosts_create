@@ -16,6 +16,16 @@ resource "google_compute_instance" "docker" {
   metadata = {
     sshKeys = "dockeruser:${file("${var.public_key_path}")}"
   }
+  provisioner "remote-exec" {
+    script = "files/docker.deploy.sh"
+  }
+  connection {
+    host = google_compute_address.docker_ip.address
+    type = "ssh"
+    user = "dockeruser"
+    agent = false
+    private_key = file("${var.private_key_path}")
+  }
 }
 
 resource "google_compute_address" "docker_ip" {
@@ -33,13 +43,4 @@ resource "google_compute_firewall" "firewall_puma" {
   }
   source_ranges = ["0.0.0.0/0"]
   target_tags = ["docker-host"]
-}
-provisioner "remote-exec" {
-  script = "files/docker.deploy.sh"
-}
-connection {
-  type = "ssh"
-  user = "dockeruser"
-  agent = false
-  private_key = "${file("~/.ssh/id_rsa")}"
 }
