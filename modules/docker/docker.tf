@@ -1,7 +1,12 @@
 resource "google_compute_instance" "docker" {
-  name         = "docker-host"
+  count = 2
+  name         = "docker-host${count.index + 1}"
   machine_type = "g1-small"
-  tags         = ["docker-host"]
+  tags         = ["docker-host${count.index + 1}"]
+  # tags = {
+  #   Name = "Docker-${count.index + 1}"
+  #   Batch = "DockerBatch"
+  # }
   boot_disk {
     initialize_params {
       image = var.docker_disk_image
@@ -10,7 +15,8 @@ resource "google_compute_instance" "docker" {
   network_interface {
     network = "default"
     access_config {
-      nat_ip = google_compute_address.docker_ip.address
+      # nat_ip = google_compute_address.docker_ip.address
+      nat_ip = google_compute_address.docker_ip[count.index].address
     }
   }
   metadata = {
@@ -20,7 +26,8 @@ resource "google_compute_instance" "docker" {
     script = "files/docker.deploy.sh"
   }
   connection {
-    host = google_compute_address.docker_ip.address
+    # host = google_compute_address.docker_ip.address
+    host = google_compute_address.docker_ip[count.index].address
     type = "ssh"
     user = "dockeruser"
     agent = false
@@ -29,7 +36,8 @@ resource "google_compute_instance" "docker" {
 }
 
 resource "google_compute_address" "docker_ip" {
-  name = "docker-host-ip"
+  name = "docker-host-ip${count.index}"
+  count = 2
   region = "europe-west6"
 }
 
@@ -42,5 +50,5 @@ resource "google_compute_firewall" "firewall_puma" {
     ports = ["2376"]
   }
   source_ranges = ["0.0.0.0/0"]
-  target_tags = ["docker-host"]
+  # target_tags = ["docker-host"]
 }
