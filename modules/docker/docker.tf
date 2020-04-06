@@ -1,12 +1,8 @@
 resource "google_compute_instance" "docker" {
-  count = 2
+  count = var.number_of_instances
   name         = "docker-host${count.index + 1}"
   machine_type = "g1-small"
   tags         = ["docker-host${count.index + 1}"]
-  # tags = {
-  #   Name = "Docker-${count.index + 1}"
-  #   Batch = "DockerBatch"
-  # }
   boot_disk {
     initialize_params {
       image = var.docker_disk_image
@@ -25,6 +21,10 @@ resource "google_compute_instance" "docker" {
   provisioner "remote-exec" {
     script = "files/docker.deploy.sh"
   }
+  provisioner "local-exec" {
+    # command = "echo ${google_compute_address.docker_ip[count.index].address}"
+    command = "docker-machine create --driver generic --generic-ip-address=${google_compute_address.docker_ip[count.index].address} --generic-ssh-user=dockeruser --generic-ssh-key=${var.private_key_absolute_path} vm${count.index}"
+  }
   connection {
     # host = google_compute_address.docker_ip.address
     host = google_compute_address.docker_ip[count.index].address
@@ -37,7 +37,7 @@ resource "google_compute_instance" "docker" {
 
 resource "google_compute_address" "docker_ip" {
   name = "docker-host-ip${count.index}"
-  count = 2
+  count = var.number_of_instances
   region = "europe-west6"
 }
 
